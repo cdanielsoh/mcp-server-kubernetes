@@ -4,8 +4,6 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import {
   ContainerTemplate,
   containerTemplates,
-  CustomContainerConfig,
-  CustomContainerConfigType,
 } from "../config/container-templates.js";
 
 export const createDeploymentSchema = {
@@ -21,66 +19,6 @@ export const createDeploymentSchema = {
         enum: ContainerTemplate.options,
       },
       replicas: { type: "number", default: 1 },
-      ports: {
-        type: "array",
-        items: { type: "number" },
-        optional: true,
-      },
-      customConfig: {
-        type: "object",
-        optional: true,
-        properties: {
-          image: { type: "string" },
-          command: { type: "array", items: { type: "string" } },
-          args: { type: "array", items: { type: "string" } },
-          ports: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                containerPort: { type: "number" },
-                name: { type: "string" },
-                protocol: { type: "string" },
-              },
-            },
-          },
-          resources: {
-            type: "object",
-            properties: {
-              limits: {
-                type: "object",
-                additionalProperties: { type: "string" },
-              },
-              requests: {
-                type: "object",
-                additionalProperties: { type: "string" },
-              },
-            },
-          },
-          env: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                name: { type: "string" },
-                value: { type: "string" },
-                valueFrom: { type: "object" },
-              },
-            },
-          },
-          volumeMounts: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                name: { type: "string" },
-                mountPath: { type: "string" },
-                readOnly: { type: "boolean" },
-              },
-            },
-          },
-        },
-      },
     },
     required: ["name", "namespace", "template"],
   },
@@ -93,45 +31,18 @@ export async function createDeployment(
     namespace: string;
     template: string;
     replicas?: number;
-    ports?: number[];
-    customConfig?: CustomContainerConfigType;
   }
 ) {
+  // Get the container template configuration - removed custom template handling
   const templateConfig = containerTemplates[input.template];
-
-  // If using custom template, validate and merge custom config
-  let containerConfig: k8s.V1Container;
-  if (input.template === "custom") {
-    if (!input.customConfig) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        "Custom container configuration is required when using 'custom' template"
-      );
-    }
-
-    // Validate custom config against schema
-    const validatedConfig = CustomContainerConfig.parse(input.customConfig);
-
-    // Merge base template with custom config
-    containerConfig = {
-      ...templateConfig,
-      image: validatedConfig.image,
-      command: validatedConfig.command,
-      args: validatedConfig.args,
-      ports: validatedConfig.ports,
-      resources: validatedConfig.resources,
-      env: validatedConfig.env,
-      volumeMounts: validatedConfig.volumeMounts,
-    };
-  } else {
-    containerConfig = {
-      ...templateConfig,
-      ports:
-        input.ports?.map((port) => ({ containerPort: port })) ||
-        templateConfig.ports,
-    };
+  if (!templateConfig) {
+    throw new McpError(
+      ErrorCode.InvalidRequest,
+      `Invalid template: ${input.template}`
+    );
   }
 
+  // Create a deployment with the selected template
   const deployment: k8s.V1Deployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -157,7 +68,7 @@ export async function createDeployment(
           },
         },
         spec: {
-          containers: [containerConfig],
+          containers: [{ ...templateConfig }],
         },
       },
     },

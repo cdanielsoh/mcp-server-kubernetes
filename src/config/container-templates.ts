@@ -1,18 +1,18 @@
 import { z } from "zod";
 import * as k8s from "@kubernetes/client-node";
 
-// Container template types
+// Container template types - removing "custom" option
 export const ContainerTemplate = z.enum([
   "ubuntu",
   "nginx",
   "busybox",
   "alpine",
-  "custom",
+  // Removed "custom" option
 ]);
 
 export type ContainerTemplateName = z.infer<typeof ContainerTemplate>;
 
-// Custom container configuration schema
+// We can keep this for internal use, though it won't be exposed through the API
 export const CustomContainerConfig = z.object({
   image: z.string(),
   command: z.array(z.string()).optional(),
@@ -154,26 +154,5 @@ export const containerTemplates: Record<string, k8s.V1Container> = {
       periodSeconds: 10,
     },
   },
-  custom: {
-    name: "main",
-    image: "busybox:latest", // Default image, will be overridden by custom config
-    command: ["sh"],
-    args: ["-c", "sleep infinity"],
-    resources: {
-      limits: {
-        cpu: "100m",
-        memory: "64Mi",
-      },
-      requests: {
-        cpu: "50m",
-        memory: "32Mi",
-      },
-    },
-    livenessProbe: {
-      exec: {
-        command: ["true"],
-      },
-      periodSeconds: 10,
-    },
-  },
+  // Removed "custom" template
 };

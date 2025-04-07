@@ -3,7 +3,6 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { listPods, listPodsSchema } from "./tools/list_pods.js";
 import { listNodes, listNodesSchema } from "./tools/list_nodes.js";
-import { listServices, listServicesSchema } from "./tools/list_services.js";
 import {
   listDeployments,
   listDeploymentsSchema,
@@ -12,14 +11,6 @@ import { listCronJobs, listCronJobsSchema } from "./tools/list_cronjobs.js";
 import { describeCronJob, describeCronJobSchema } from "./tools/describe_cronjob.js";
 import { listJobs, listJobsSchema } from "./tools/list_jobs.js";
 import { getJobLogs, getJobLogsSchema } from "./tools/get_job_logs.js";
-import {
-  installHelmChart,
-  installHelmChartSchema,
-  upgradeHelmChart,
-  upgradeHelmChartSchema,
-  uninstallHelmChart,
-  uninstallHelmChartSchema,
-} from "./tools/helm-operations.js";
 import {
   explainResource,
   explainResourceSchema,
@@ -97,7 +88,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       getEventsSchema,
       getJobLogsSchema,
       getLogsSchema,
-      installHelmChartSchema,
       listApiResourcesSchema,
       listCronJobsSchema,
       listDeploymentsSchema,
@@ -105,9 +95,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       listNamespacesSchema,
       listNodesSchema,
       listPodsSchema,
-      listServicesSchema,
-      uninstallHelmChartSchema,
-      upgradeHelmChartSchema,
       PortForwardSchema,
       StopPortForwardSchema,
       scaleDeploymentSchema,
@@ -248,18 +235,6 @@ server.setRequestHandler(
           );
         }
 
-        case "install_helm_chart": {
-          return await installHelmChart(
-            input as {
-              name: string;
-              chart: string;
-              repo: string;
-              namespace: string;
-              values?: Record<string, any>;
-            }
-          );
-        }
-
         case "list_api_resources": {
           return await listApiResources(
             input as {
@@ -305,13 +280,6 @@ server.setRequestHandler(
           return await listPods(k8sManager, input as { namespace?: string });
         }
 
-        case "list_services": {
-          return await listServices(
-            k8sManager,
-            input as { namespace?: string }
-          );
-        }
-
         case "list_cronjobs": {
           return await listCronJobs(
             k8sManager,
@@ -347,27 +315,6 @@ server.setRequestHandler(
               namespace: string;
               tail?: number;
               timestamps?: boolean;
-            }
-          );
-        }
-
-        case "uninstall_helm_chart": {
-          return await uninstallHelmChart(
-            input as {
-              name: string;
-              namespace: string;
-            }
-          );
-        }
-
-        case "upgrade_helm_chart": {
-          return await upgradeHelmChart(
-            input as {
-              name: string;
-              chart: string;
-              repo: string;
-              namespace: string;
-              values?: Record<string, any>;
             }
           );
         }

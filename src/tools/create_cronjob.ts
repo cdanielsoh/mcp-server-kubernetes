@@ -15,11 +15,7 @@ export const createCronJobSchema = {
         type: "array",
         items: { type: "string" },
         optional: true,
-      },
-      suspend: {
-        type: "boolean",
-        optional: true,
-      },
+      }
     },
     required: ["name", "namespace", "schedule", "image"],
   },
@@ -33,7 +29,6 @@ export async function createCronJob(
     schedule: string;
     image: string;
     command?: string[];
-    suspend?: boolean;
   }
 ) {
   try {
@@ -50,7 +45,7 @@ export async function createCronJob(
       },
       spec: {
         schedule: input.schedule,
-        suspend: input.suspend || false,
+        suspend: false, // Hard-coded to false instead of using a parameter
         jobTemplate: {
           spec: {
             template: {

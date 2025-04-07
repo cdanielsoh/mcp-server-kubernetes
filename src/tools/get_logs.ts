@@ -33,21 +33,6 @@ export const getLogsSchema = {
           "Container name (required when pod has multiple containers)",
         optional: true,
       },
-      tail: {
-        type: "number",
-        description: "Number of lines to show from end of logs",
-        optional: true,
-      },
-      since: {
-        type: "number",
-        description: "Get logs since relative time in seconds",
-        optional: true,
-      },
-      timestamps: {
-        type: "boolean",
-        description: "Include timestamps in logs",
-        default: false,
-      },
     },
     required: ["resourceType"],
   },
@@ -57,28 +42,21 @@ async function getPodLogs(
   k8sManager: KubernetesManager,
   podName: string,
   podNamespace: string,
-  input: {
-    container?: string;
-    tail?: number;
-    sinceSeconds?: number;
-    timestamps?: boolean;
-    pretty?: boolean;
-    follow?: boolean;
-  }
+  container?: string
 ): Promise<string> {
   try {
     const { body } = await k8sManager.getCoreApi().readNamespacedPodLog(
       podName,
       podNamespace,
-      input.container,
-      input.follow,
+      container,
+      false, // follow
       undefined, // insecureSkipTLSVerifyBackend
       undefined, // limitBytes
-      input.pretty ? "true" : "false",
+      undefined, // pretty
       undefined, // previous
-      input.sinceSeconds,
-      input.tail,
-      input.timestamps
+      undefined, // sinceSeconds
+      undefined, // tail
+      false // timestamps
     );
     return body;
   } catch (error: any) {
@@ -109,11 +87,6 @@ export async function getLogs(k8sManager: KubernetesManager, input: {
   namespace?: string;
   labelSelector?: string;
   container?: string;
-  tail?: number;
-  sinceSeconds?: number;
-  timestamps?: boolean;
-  pretty?: boolean;
-  follow?: false;
 }) {
   const namespace = input.namespace || "default";
   const logs: { [key: string]: string } = {};
@@ -128,7 +101,7 @@ export async function getLogs(k8sManager: KubernetesManager, input: {
             "Pod name is required when resourceType is 'pod'"
           );
         }
-        logs[input.name] = await getPodLogs(k8sManager, input.name, namespace, input);
+        logs[input.name] = await getPodLogs(k8sManager, input.name, namespace, input.container);
         break;
       }
 
@@ -170,7 +143,7 @@ export async function getLogs(k8sManager: KubernetesManager, input: {
               k8sManager,
               pod.metadata.name,
               namespace,
-              input
+              input.container
             );
           }
         }
@@ -201,7 +174,7 @@ export async function getLogs(k8sManager: KubernetesManager, input: {
               k8sManager,
               pod.metadata.name,
               namespace,
-              input
+              input.container
             );
           }
         }
@@ -234,7 +207,7 @@ export async function getLogs(k8sManager: KubernetesManager, input: {
             k8sManager,
             pod.metadata.name,
             namespace,
-            input
+            input.container
           );
         }
       }
